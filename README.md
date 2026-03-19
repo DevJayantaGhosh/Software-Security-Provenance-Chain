@@ -131,7 +131,7 @@ Edit `.env` and set your private key:
 
 ```env
 HEDERA_TESTNET_ENDPOINT=https://testnet.hashio.io/api
-DEPLOYER_PRIVATE_KEY=your_ecdsa_private_key_here
+SERVICE_ACCOUNT_PRIVATE_KEY=your_ecdsa_private_key_here
 ```
 
 ### 3. Compile the Contract

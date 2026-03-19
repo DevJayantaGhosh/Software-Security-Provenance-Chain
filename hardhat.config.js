@@ -7,7 +7,7 @@ require("dotenv").config();
 
 const HEDERA_TESTNET_ENDPOINT =
   process.env.HEDERA_TESTNET_ENDPOINT || "https://testnet.hashio.io/api";
-const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "";
+const SERVICE_ACCOUNT_PRIVATE_KEY = process.env.SERVICE_ACCOUNT_PRIVATE_KEY || "";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -18,7 +18,7 @@ module.exports = {
         enabled: true,
         runs: 200,
       },
-      //evmVersion: "paris", // Hedera supports up to Paris; avoids PUSH0 opcode issues
+      evmVersion: "paris", // Hedera supports up to Paris; avoids PUSH0 opcode issues
     },
   },
   defaultNetwork: "hardhat",
@@ -27,12 +27,11 @@ module.exports = {
     hederaTestnet: {
       // Hedera Testnet JSON-RPC relay (HashIO public endpoint)
       url: HEDERA_TESTNET_ENDPOINT,
-      accounts: DEPLOYER_PRIVATE_KEY ? [DEPLOYER_PRIVATE_KEY] : [],
+      accounts: SERVICE_ACCOUNT_PRIVATE_KEY ? [SERVICE_ACCOUNT_PRIVATE_KEY] : [],
       chainId: 296,
-      // Hedera has different gas behaviour — set generous limits
-      gas: 3000000,
-      gasPrice: "auto",
-      timeout: 120000, // 2 min — Hedera relay can be slow
+      // Hedera gas settings — deployment needs higher gas limit
+      gas: 4000000,
+      timeout: 180000, // 3 min — Hedera relay can be slow
     },
   },
   paths: {

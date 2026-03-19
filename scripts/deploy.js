@@ -25,7 +25,7 @@ async function main() {
   printBanner();
 
   console.log("  ┌════════════════════════════════════════════════════┐");
-  console.log("  │         📦  CONTRACT DEPLOYMENT                    │");
+  console.log("  │           CONTRACT DEPLOYMENT                      │");
   console.log("  └════════════════════════════════════════════════════┘");
   console.log("");
 
@@ -34,31 +34,38 @@ async function main() {
   const network = hre.network.name;
   const chainId = (await hre.ethers.provider.getNetwork()).chainId.toString();
 
-  console.log("  ⛓  Network      :", network);
-  console.log("  🔗 Chain ID     :", chainId);
-  console.log("  👤 Deployer     :", deployer.address);
-  console.log("  💰 Balance      :", hre.ethers.formatEther(balance), network === "hederaTestnet" ? "HBAR" : "ETH");
+  console.log("  Network          : " + network);
+  console.log("  Chain ID         : " + chainId);
+  console.log("  Deployer         : " + deployer.address);
+  console.log("  Balance          : " + hre.ethers.formatEther(balance) + " " + (network === "hederaTestnet" ? "HBAR" : "ETH"));
   console.log("");
 
-  // Deploy
-  console.log("  ⏳ Deploying ProductRegistry contract...");
+  // Deploy — explicit gasLimit bypasses relay gas estimation (avoids INSUFFICIENT_TX_FEE)
+  console.log("  Deploying ProductRegistry contract...");
   console.log("");
   const ProductRegistry = await hre.ethers.getContractFactory("ProductRegistry");
-  const registry = await ProductRegistry.deploy();
+  const registry = await ProductRegistry.deploy({
+    gasLimit: 3_000_000,
+  });
   await registry.waitForDeployment();
 
   const contractAddress = await registry.getAddress();
 
   console.log("  ┌════════════════════════════════════════════════════┐");
-  console.log("  │         ✅  DEPLOYMENT SUCCESSFUL                  │");
+  console.log("  │             DEPLOYMENT SUCCESSFUL                  │");
   console.log("  └════════════════════════════════════════════════════┘");
   console.log("");
-  console.log("  📋 Contract     : ProductRegistry");
-  console.log("  📍 Address      :", contractAddress);
+  console.log("  Contract Name    : ProductRegistry");
+  console.log("  Contract Address : " + contractAddress);
 
   if (network === "hederaTestnet") {
-    console.log("  🔍 HashScan     : https://hashscan.io/testnet/contract/" + contractAddress);
+    console.log("  HashScan         : https://hashscan.io/testnet/contract/" + contractAddress);
   }
+
+  // ── Verify deployer is auto-registered as service account (via constructor) ──
+  console.log("");
+  const isService = await registry.serviceAccounts(deployer.address);
+  console.log("  Service Account  : " + (isService ? "ACTIVE" : "NOT REGISTERED"));
 
   // ── Save deployment info ──────────────────────────
   const deploymentInfo = {
@@ -66,7 +73,7 @@ async function main() {
     chainId: chainId,
     contractName: "ProductRegistry",
     contractAddress: contractAddress,
-    deployer: deployer.address,
+    deployerAddress: deployer.address,
     deployedAt: new Date().toISOString(),
   };
 
@@ -80,7 +87,8 @@ async function main() {
     `${network}-deployment.json`
   );
   fs.writeFileSync(deploymentFile, JSON.stringify(deploymentInfo, null, 2));
-  console.log("  💾 Deployment   :", deploymentFile);
+  console.log("");
+  console.log("  Deployment Saved : " + deploymentFile);
 
   // ── Extract & save ABI ────────────────────────────
   const artifactPath = path.join(
@@ -100,12 +108,13 @@ async function main() {
     }
     const abiFile = path.join(abiDir, "ProductRegistry.abi.json");
     fs.writeFileSync(abiFile, JSON.stringify(artifact.abi, null, 2));
-    console.log("  📄 ABI          :", abiFile);
+    console.log("");
+    console.log("  ABI Saved        : " + abiFile);
   }
 
   console.log("");
   console.log("  ╔════════════════════════════════════════════════════╗");
-  console.log("  ║  🎉 Software Security Provenance Chain deployed!   ║");
+  console.log("  ║     Software Security Provenance Chain deployed!   ║");
   console.log("  ╚════════════════════════════════════════════════════╝");
   console.log("");
 }
@@ -115,7 +124,7 @@ main()
   .catch((error) => {
     console.error("");
     console.error("  ┌════════════════════════════════════════════════════┐");
-    console.error("  │         ❌  DEPLOYMENT FAILED                      │");
+    console.error("  │             DEPLOYMENT FAILED                      │");
     console.error("  └════════════════════════════════════════════════════┘");
     console.error("");
     console.error(" ", error);

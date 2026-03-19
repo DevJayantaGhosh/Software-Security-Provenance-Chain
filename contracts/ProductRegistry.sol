@@ -120,6 +120,8 @@ contract ProductRegistry {
 
     constructor() {
         owner = msg.sender;
+        serviceAccounts[msg.sender] = true;  // deployer = owner = service account
+        emit ServiceAccountAdded(msg.sender);
     }
 
     // ──────────────────────────────────────────────────
