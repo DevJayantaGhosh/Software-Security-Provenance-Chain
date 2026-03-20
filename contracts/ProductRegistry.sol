@@ -79,6 +79,12 @@ contract ProductRegistry {
     /// @dev Addresses authorized to call recordProduct()
     mapping(address => bool) public serviceAccounts;
 
+    /// @dev Enumerable list of all addresses ever added as service accounts
+    address[] private _serviceAccountList;
+
+    /// @dev Track whether an address is already in _serviceAccountList (to avoid duplicates)
+    mapping(address => bool) private _inServiceAccountList;
+
     /// @dev productId -> number of snapshots recorded (0-3)
     mapping(string => uint256) public snapshotCount;
 
@@ -121,6 +127,8 @@ contract ProductRegistry {
     constructor() {
         owner = msg.sender;
         serviceAccounts[msg.sender] = true;  // deployer = owner = service account
+        _serviceAccountList.push(msg.sender);
+        _inServiceAccountList[msg.sender] = true;
         emit ServiceAccountAdded(msg.sender);
     }
 
@@ -131,6 +139,10 @@ contract ProductRegistry {
     function addServiceAccount(address _account) external onlyOwner {
         require(_account != address(0), "Zero address");
         serviceAccounts[_account] = true;
+        if (!_inServiceAccountList[_account]) {
+            _serviceAccountList.push(_account);
+            _inServiceAccountList[_account] = true;
+        }
         emit ServiceAccountAdded(_account);
     }
 
@@ -287,5 +299,33 @@ contract ProductRegistry {
         returns (uint256)
     {
         return snapshotCount[productId];
+    }
+
+    // ──────────────────────────────────────────────────
+    //  SERVICE ACCOUNT READERS
+    // ──────────────────────────────────────────────────
+
+    /**
+     * @dev Get all addresses that have ever been added as service accounts.
+     *      Check serviceAccounts(addr) for each to determine current active status.
+     * @return List of all known service account addresses.
+     */
+    function getAllServiceAccounts()
+        external
+        view
+        returns (address[] memory)
+    {
+        return _serviceAccountList;
+    }
+
+    /**
+     * @dev Get the number of unique service account addresses ever registered.
+     */
+    function getServiceAccountCount()
+        external
+        view
+        returns (uint256)
+    {
+        return _serviceAccountList.length;
     }
 }
