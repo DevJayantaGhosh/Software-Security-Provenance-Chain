@@ -5,7 +5,7 @@ pragma solidity >=0.7.0 <0.9.0;
  * @title  ProductRegistry — Software Security Provenance Chain
  * @author Jayanta Ghosh | IIT Madras | CS23M513
  * @dev    Immutable on-chain provenance for software products.
- *         Records three lifecycle stages: SCAN -> SIGN -> RELEASE.
+ *         Records three lifecycle stages: SCAN -> RELEASE -> SIGN.
  *         Deployed on Hedera Testnet (Chain ID 296).
  *
  * @dev    Restrictions enforced in recordProduct():
@@ -13,10 +13,10 @@ pragma solidity >=0.7.0 <0.9.0;
  *         R2  name not empty
  *         R3  version not empty
  *         R4  reposJson not empty
- *         R5  Stage order: count 0->SCAN, 1->SIGN, 2->RELEASE
+ *         R5  Stage order: count 0->SCAN, 1->RELEASE, 2->SIGN
  *         R6  SIGN must have both IPFS files
  *         R7  SCAN/RELEASE must NOT have IPFS files
- *         R8  Status must match stage (SCAN->Approved|Rejected, SIGN->Signed, RELEASE->Released)
+ *         R8  Status must match stage (SCAN->Approved|Rejected, RELEASE->Released, SIGN->Signed)
  *         R9  Max 3 snapshots (approved path) or max 1 (rejected path)
  *         R10 Only service accounts can record
  *         R11 If SCAN was Rejected -> block all future records
@@ -27,7 +27,7 @@ contract ProductRegistry {
     //  ENUMS
     // ──────────────────────────────────────────────────
 
-    enum Stage { SCAN, SIGN, RELEASE }   // 0, 1, 2
+    enum Stage { SCAN, RELEASE, SIGN }   // 0, 1, 2
 
     // ──────────────────────────────────────────────────
     //  STRUCTS
@@ -51,9 +51,9 @@ contract ProductRegistry {
         string  dependencies;       // comma-separated
 
         // Workflow
-        string  status;             // "Approved"|"Rejected"|"Signed"|"Released"
+        string  status;             // "Approved"|"Rejected"|"Released"|"Signed"
         string  remark;
-        Stage   stage;              // SCAN=0, SIGN=1, RELEASE=2
+        Stage   stage;              // SCAN=0, RELEASE=1, SIGN=2
 
         // IPFS (only at SIGN stage)
         string  signatureFileIPFS;  // "ipfs://Qm..." or ""
@@ -69,7 +69,7 @@ contract ProductRegistry {
     //  STATE
     // ──────────────────────────────────────────────────
     //  Lifecycle flow per product:
-    //    Approved path:  [0] SCAN(Approved) -> [1] SIGN(Signed) -> [2] RELEASE(Released)
+    //    Approved path:  [0] SCAN(Approved) -> [1] RELEASE(Released) -> [2] SIGN(Signed)
     //    Rejected path:  [0] SCAN(Rejected) -> BLOCKED (R11)
     //
     // ──────────────────────────────────────────────────
@@ -184,9 +184,9 @@ contract ProductRegistry {
         if (currentCount == 0) {
             require(metadata.stage == Stage.SCAN,    "First record must be SCAN");    
         } else if (currentCount == 1) {
-            require(metadata.stage == Stage.SIGN,    "Second record must be SIGN");   
+            require(metadata.stage == Stage.RELEASE, "Second record must be RELEASE");
         } else if (currentCount == 2) {
-            require(metadata.stage == Stage.RELEASE, "Third record must be RELEASE"); 
+            require(metadata.stage == Stage.SIGN,    "Third record must be SIGN");    
         }
 
         // Max snapshots 
@@ -199,15 +199,15 @@ contract ProductRegistry {
                 keccak256(bytes(metadata.status)) == keccak256(bytes("Rejected")),
                 "SCAN status must be Approved or Rejected"                       
             );
-        } else if (metadata.stage == Stage.SIGN) {
-            require(
-                keccak256(bytes(metadata.status)) == keccak256(bytes("Signed")),
-                "SIGN status must be Signed"                                     
-            );
         } else if (metadata.stage == Stage.RELEASE) {
             require(
                 keccak256(bytes(metadata.status)) == keccak256(bytes("Released")),
                 "RELEASE status must be Released"                                
+            );
+        } else if (metadata.stage == Stage.SIGN) {
+            require(
+                keccak256(bytes(metadata.status)) == keccak256(bytes("Signed")),
+                "SIGN status must be Signed"                                     
             );
         }
 
@@ -258,7 +258,7 @@ contract ProductRegistry {
     /**
      * @dev Get a specific snapshot for a product.
      * @param productId The product identifier.
-     * @param index     The snapshot index (0=SCAN, 1=SIGN, 2=RELEASE).
+     * @param index     The snapshot index (0=SCAN, 1=RELEASE, 2=SIGN).
      */
     function getSnapshot(string memory productId, uint256 index)
         external
@@ -270,11 +270,11 @@ contract ProductRegistry {
     }
 
     /**
-     * @dev Get all recorded snapshots for a product (up to 3: SCAN, SIGN, RELEASE).
+     * @dev Get all recorded snapshots for a product (up to 3: SCAN, RELEASE, SIGN).
      *      Returns an array whose length equals the number of snapshots recorded so far.
      * @param productId The product identifier.
      * @return snapshots Array of ProductSnapshot structs in stage order
-     *         index 0 = SCAN, index 1 = SIGN, index 2 = RELEASE (if they exist).
+     *         index 0 = SCAN, index 1 = RELEASE, index 2 = SIGN (if they exist).
      */
     function getAllSnapshotsByProductId(string memory productId)
         external

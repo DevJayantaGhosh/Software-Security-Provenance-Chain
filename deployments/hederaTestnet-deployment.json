@@ -2,7 +2,7 @@
   "network": "hederaTestnet",
   "chainId": "296",
   "contractName": "ProductRegistry",
-  "contractAddress": "0xaFE8ECb25fF494650849bD40A01536683231F8Dc",
+  "contractAddress": "0xA2a704e2442eD1c2c3cFb6751448C5f9Be7A2c6a",
   "deployerAddress": "0xa37D2739A770e61BFb210906D4fcaBE08A32a446",
-  "deployedAt": "2026-03-20T16:38:02.748Z"
+  "deployedAt": "2026-04-04T05:43:27.725Z"
 }
