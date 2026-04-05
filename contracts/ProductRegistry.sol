@@ -5,7 +5,7 @@ pragma solidity >=0.7.0 <0.9.0;
  * @title  ProductRegistry — Software Security Provenance Chain
  * @author Jayanta Ghosh | IIT Madras | CS23M513
  * @dev    Immutable on-chain provenance for software products.
- *         Records three lifecycle stages: SCAN -> RELEASE -> SIGN.
+ *         Records three lifecycle steps: SCAN -> RELEASE -> SIGN.
  *         Deployed on Hedera Testnet (Chain ID 296).
  *
  * @dev    Restrictions enforced in recordProduct():
@@ -13,10 +13,10 @@ pragma solidity >=0.7.0 <0.9.0;
  *         R2  name not empty
  *         R3  version not empty
  *         R4  reposJson not empty
- *         R5  Stage order: count 0->SCAN, 1->RELEASE, 2->SIGN
+ *         R5  Step order: count 0->SCAN, 1->RELEASE, 2->SIGN
  *         R6  SIGN must have both IPFS files
  *         R7  SCAN/RELEASE must NOT have IPFS files
- *         R8  Status must match stage (SCAN->Approved|Rejected, RELEASE->Released, SIGN->Signed)
+ *         R8  Status must match step (SCAN->Approved|Rejected, RELEASE->Released, SIGN->Signed)
  *         R9  Max 3 snapshots (approved path) or max 1 (rejected path)
  *         R10 Only service accounts can record
  *         R11 If SCAN was Rejected -> block all future records
@@ -27,7 +27,7 @@ contract ProductRegistry {
     //  ENUMS
     // ──────────────────────────────────────────────────
 
-    enum Stage { SCAN, RELEASE, SIGN }   // 0, 1, 2
+    enum Step { SCAN, RELEASE, SIGN }   // 0, 1, 2
 
     // ──────────────────────────────────────────────────
     //  STRUCTS
@@ -53,9 +53,9 @@ contract ProductRegistry {
         // Workflow
         string  status;             // "Approved"|"Rejected"|"Released"|"Signed"
         string  remark;
-        Stage   stage;              // SCAN=0, RELEASE=1, SIGN=2
+        Step    step;               // SCAN=0, RELEASE=1, SIGN=2
 
-        // IPFS (only at SIGN stage)
+        // IPFS (only at SIGN step)
         string  signatureFileIPFS;  // "ipfs://Qm..." or ""
         string  publicKeyFileIPFS;  // "ipfs://Qm..." or ""
 
@@ -97,7 +97,7 @@ contract ProductRegistry {
 
     event ProductRecorded(
         string indexed productId,
-        Stage   stage,
+        Step    step,
         string  status,
         address recordedBy,
         uint256 timestamp
@@ -180,31 +180,31 @@ contract ProductRegistry {
             );
         }
 
-        // Stage ordering 
+        // Step ordering 
         if (currentCount == 0) {
-            require(metadata.stage == Stage.SCAN,    "First record must be SCAN");    
+            require(metadata.step == Step.SCAN,    "First record must be SCAN");    
         } else if (currentCount == 1) {
-            require(metadata.stage == Stage.RELEASE, "Second record must be RELEASE");
+            require(metadata.step == Step.RELEASE, "Second record must be RELEASE");
         } else if (currentCount == 2) {
-            require(metadata.stage == Stage.SIGN,    "Third record must be SIGN");    
+            require(metadata.step == Step.SIGN,    "Third record must be SIGN");    
         }
 
         // Max snapshots 
         require(currentCount < 3, "Max snapshots reached");                     
 
-        // Status must match stage ──
-        if (metadata.stage == Stage.SCAN) {
+        // Status must match step ──
+        if (metadata.step == Step.SCAN) {
             require(
                 keccak256(bytes(metadata.status)) == keccak256(bytes("Approved")) ||
                 keccak256(bytes(metadata.status)) == keccak256(bytes("Rejected")),
                 "SCAN status must be Approved or Rejected"                       
             );
-        } else if (metadata.stage == Stage.RELEASE) {
+        } else if (metadata.step == Step.RELEASE) {
             require(
                 keccak256(bytes(metadata.status)) == keccak256(bytes("Released")),
                 "RELEASE status must be Released"                                
             );
-        } else if (metadata.stage == Stage.SIGN) {
+        } else if (metadata.step == Step.SIGN) {
             require(
                 keccak256(bytes(metadata.status)) == keccak256(bytes("Signed")),
                 "SIGN status must be Signed"                                     
@@ -212,7 +212,7 @@ contract ProductRegistry {
         }
 
         // SIGN must have both IPFS files 
-        if (metadata.stage == Stage.SIGN) {
+        if (metadata.step == Step.SIGN) {
             require(
                 bytes(metadata.signatureFileIPFS).length > 0,
                 "SIGN requires signatureFileIPFS"                                
@@ -224,7 +224,7 @@ contract ProductRegistry {
         }
 
         // SCAN & RELEASE must NOT have IPFS files ──
-        if (metadata.stage == Stage.SCAN || metadata.stage == Stage.RELEASE) {
+        if (metadata.step == Step.SCAN || metadata.step == Step.RELEASE) {
             require(
                 bytes(metadata.signatureFileIPFS).length == 0,
                 "SCAN/RELEASE must not have signatureFileIPFS"                  
@@ -244,7 +244,7 @@ contract ProductRegistry {
 
         emit ProductRecorded(
             metadata.productId,
-            metadata.stage,
+            metadata.step,
             metadata.status,
             msg.sender,
             block.timestamp
@@ -273,7 +273,7 @@ contract ProductRegistry {
      * @dev Get all recorded snapshots for a product (up to 3: SCAN, RELEASE, SIGN).
      *      Returns an array whose length equals the number of snapshots recorded so far.
      * @param productId The product identifier.
-     * @return snapshots Array of ProductSnapshot structs in stage order
+     * @return snapshots Array of ProductSnapshot structs in step order
      *         index 0 = SCAN, index 1 = RELEASE, index 2 = SIGN (if they exist).
      */
     function getAllSnapshotsByProductId(string memory productId)
