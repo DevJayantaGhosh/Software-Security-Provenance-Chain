@@ -197,6 +197,3 @@ https://hashscan.io/testnet/contract/<YOUR_CONTRACT_ADDRESS>
 
 **Jayanta Ghosh** | IIT Madras | CS23M513
 
-## License
-
-UNLICENSED
