@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Hardhat
+cache/
+artifacts/
+
+# Environment
+.env
+
+# Deployment artifacts (optional — remove if you want to track deployments)
+# deployments/
+
+# ABI output (regenerated from compile)
+# abi/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Coverage
+coverage/
+coverage.json
+
+# TypeChain (if using TypeScript later)
+typechain/
+typechain-types/
